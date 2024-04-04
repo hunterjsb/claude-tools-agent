@@ -17,11 +17,14 @@ import (
 var cfg *Config
 
 func main() {
-	// load config and env vars
+	// Load config and env vars
 	cfg = NewConfig(true)
 	cfg.Load()
 
-	// start the conversation
+	// Initialize
+	conversation := make(Conversation, 0)
+
+	// Start the conversation
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("You: ")
@@ -33,16 +36,17 @@ func main() {
 			break
 		}
 
-		conversation := make([]Message, 1)
-		conversation[0] = Message{Role: User, Content: input}
+		conversation = append(conversation, Message{Role: User, Content: input})
 
+		// Converse
 		req := &Request{Model: Opus, Messages: conversation, MaxTokens: 2048, System: SYS_PROMPT}
 		resp, err := req.Post()
 		if err != nil {
 			fmt.Println("Error making request: " + err.Error())
 		} else {
-			fmt.Println("Claude responded with:", resp)
+			fmt.Printf("Claude: %v (Tokens: in %d, out %d)\n", resp.Content, resp.Usage.InputTokens, resp.Usage.OutputTokens)
 		}
+		conversation.AppendResponse(resp.Content[0])
 	}
 }
 
@@ -51,7 +55,18 @@ func main() {
 const SYS_PROMPT = `
 	You are Super Claude, an AI assistant designed to help employees and developers work with Super-Sod's backend microservices. 
 	We will start off by working with the 'go-postal' REST API. Use the tools provided to fulfil user requests.
+
+	Give brief responses - we are in dev mode and many conversations are for testing purposes.
 `
+
+type Conversation []Message
+
+func (c *Conversation) AppendResponse(msg ResponseMessage) {
+	if msg.Type == text {
+		newMsg := Message{Role: Assistant, Content: msg.Text}
+		*c = append(*c, newMsg)
+	}
+}
 
 // # CLAUDE API TYPES
 // - String literals for api-specific values
@@ -79,10 +94,10 @@ type Message struct {
 }
 
 type Request struct {
-	Model     model     `json:"model"`
-	Messages  []Message `json:"messages"`
-	MaxTokens int       `json:"max_tokens"`
-	System    string    `json:"system,omitempty"`
+	Model     model        `json:"model"`
+	Messages  Conversation `json:"messages"`
+	MaxTokens int          `json:"max_tokens"`
+	System    string       `json:"system,omitempty"`
 }
 
 type ResponseMessage struct {
