@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -15,22 +17,36 @@ import (
 var cfg *Config
 
 func main() {
+	// load config and env vars
 	cfg = NewConfig(true)
 	cfg.Load()
 
-	conversation := make([]Message, 1)
-	conversation[0] = Message{Role: User, Content: "Hello, world!"}
+	// start the conversation
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print("You: ")
+		if !scanner.Scan() {
+			break
+		}
+		input := scanner.Text()
+		if strings.ToLower(input) == "exit" {
+			break
+		}
 
-	req := &Request{Model: Opus, Messages: conversation, MaxTokens: 2048}
-	resp, err := req.Post()
-	if err != nil {
-		fmt.Println("Error making request: " + err.Error())
-	} else {
-		fmt.Println("Claude responded with:", resp)
+		conversation := make([]Message, 1)
+		conversation[0] = Message{Role: User, Content: input}
+
+		req := &Request{Model: Opus, Messages: conversation, MaxTokens: 2048, System: SYS_PROMPT}
+		resp, err := req.Post()
+		if err != nil {
+			fmt.Println("Error making request: " + err.Error())
+		} else {
+			fmt.Println("Claude responded with:", resp)
+		}
 	}
 }
 
-// # Agency
+// # AGENCY AND CONVERSATION
 // Functions and logic for managing the flow of conversation & workflow with Claude
 const SYS_PROMPT = `
 	You are Super Claude, an AI assistant designed to help employees and developers work with Super-Sod's backend microservices. 
@@ -60,13 +76,13 @@ const (
 type Message struct {
 	Role    role   `json:"role"`
 	Content string `json:"content"`
-	System  string `json:"system,omitempty"`
 }
 
 type Request struct {
 	Model     model     `json:"model"`
 	Messages  []Message `json:"messages"`
 	MaxTokens int       `json:"max_tokens"`
+	System    string    `json:"system,omitempty"`
 }
 
 type ResponseMessage struct {
