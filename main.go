@@ -21,10 +21,8 @@ func main() {
 	cfg = NewConfig(true)
 	cfg.Load()
 
-	// Initialize
-	conversation := make(Conversation, 0)
-
 	// Start the conversation
+	conversation := make(Conversation, 0)
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("You: ")
@@ -36,9 +34,8 @@ func main() {
 			break
 		}
 
-		conversation = append(conversation, Message{Role: User, Content: input})
-
 		// Converse
+		conversation = append(conversation, Message{Role: User, Content: input})
 		req := &Request{Model: Opus, Messages: conversation, MaxTokens: 2048, System: SYS_PROMPT}
 		resp, err := req.Post()
 		if err != nil {
