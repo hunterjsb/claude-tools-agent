@@ -187,7 +187,7 @@ func (r *Request) Post() (*Response, error) {
 
 	// Set the headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", cfg.ClaudeApiKey)
+	req.Header.Set("x-api-key", cfg.AnthropicApiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 	req.Header.Set("anthropic-beta", "tools-2024-04-04")
 
@@ -222,8 +222,8 @@ func (r *Request) Post() (*Response, error) {
 // # CONFIGURATION
 // Config struct to type and load environment variables, and supporting methods
 type Config struct {
-	requireDotEnv bool
-	ClaudeApiKey  string
+	requireDotEnv   bool
+	AnthropicApiKey string
 }
 
 func NewConfig(requireDotEnv bool) *Config {
@@ -240,10 +240,10 @@ func (c *Config) Load() {
 		}
 	}
 
-	apiKey := os.Getenv("CLAUDE_API_KEY")
+	apiKey := os.Getenv("ANTHROPIC_API_KEY")
 	if apiKey == "" {
-		log.Fatal("FATAL: could not find CLAUDE_API_KEY")
+		log.Fatal("FATAL: could not find ANTHROPIC_API_KEY")
 	}
 
-	c.ClaudeApiKey = apiKey
+	c.AnthropicApiKey = apiKey
 }
