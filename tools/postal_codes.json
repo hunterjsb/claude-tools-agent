@@ -1,0 +1,14 @@
+{
+    "name": "get_postal_code",
+    "description": "Get the information about a single postal code",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "postal_code": {
+                "type": "string",
+                "description": "Five-digit US postal code"
+            }
+        }
+    },
+    "required": ["postal_code"]
+}

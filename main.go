@@ -21,14 +21,54 @@ func main() {
 	cfg = NewConfig(true)
 	cfg.Load()
 
+	// Get tools
+	tool, err := LoadToolFromJSONFile("tools/postal_codes.json")
+	if err != nil {
+		log.Fatal("FATAL: Error loading tool from JSON file.")
+	}
+	tools := make([]Tool, 1)
+	tools[0] = *tool
+
 	// Start the conversation
 	conversation := make(Conversation, 0)
 	scanner := bufio.NewScanner(os.Stdin)
-	conversation.Converse(scanner)
+	conversation.Converse(scanner, &tools)
 }
 
 // # TOOLS
 // Tools that Claude can use to take actions on the user's behalf
+type Tool struct {
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	InputSchema InputSchema `json:"input_schema"`
+}
+
+type InputSchema struct {
+	Type       string                 `json:"type"`
+	Properties map[string]interface{} `json:"properties"`
+	Requires   []string               `json:"requires"`
+}
+
+func LoadToolFromJSONFile(filename string) (*Tool, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read JSON file: %v", err)
+	}
+
+	var toolJSON Tool
+	err = json.Unmarshal(data, &toolJSON)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
+	}
+
+	tool := &Tool{
+		Name:        toolJSON.Name,
+		Description: toolJSON.Description,
+		InputSchema: toolJSON.InputSchema,
+	}
+
+	return tool, nil
+}
 
 // # CONVERSATION
 // Functions and logic for managing the flow of conversation with Claude
@@ -48,7 +88,7 @@ func (c *Conversation) AppendResponse(msg ResponseMessage) {
 	}
 }
 
-func (c *Conversation) Converse(scanner *bufio.Scanner) {
+func (c *Conversation) Converse(scanner *bufio.Scanner, tools *[]Tool) {
 	for {
 		// Get user input
 		fmt.Print("You: ")
@@ -62,7 +102,7 @@ func (c *Conversation) Converse(scanner *bufio.Scanner) {
 
 		// Converse
 		*c = append(*c, Message{Role: User, Content: input})
-		req := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT}
+		req := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: *tools}
 		resp, err := req.Post()
 		if err != nil {
 			fmt.Println("Error making request: " + err.Error())
@@ -103,6 +143,7 @@ type Request struct {
 	Messages  Conversation `json:"messages"`
 	MaxTokens int          `json:"max_tokens"`
 	System    string       `json:"system,omitempty"`
+	Tools     []Tool       `json:"tools,omitempty"`
 }
 
 type ResponseMessage struct {
@@ -148,6 +189,7 @@ func (r *Request) Post() (*Response, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", cfg.ClaudeApiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
+	req.Header.Set("anthropic-beta", "tools-2024-04-04")
 
 	// Make the request
 	client := &http.Client{}
