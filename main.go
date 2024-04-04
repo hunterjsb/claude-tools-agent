@@ -30,6 +30,13 @@ func main() {
 	}
 }
 
+// # Agency
+// Functions and logic for managing the flow of conversation & workflow with Claude
+const SYS_PROMPT = `
+	You are Super Claude, an AI assistant designed to help employees and developers work with Super-Sod's backend microservices. 
+	We will start off by working with the 'go-postal' REST API. Use the tools provided to fulfil user requests.
+`
+
 // # CLAUDE API TYPES
 // - String literals for api-specific values
 // - Structs for interacting with the Messages API
@@ -37,20 +44,22 @@ func main() {
 const MESSAGES_URL = "https://api.anthropic.com/v1/messages"
 
 type (
-	role       string
-	model      string
-	stopReason string
+	role         string
+	model        string
+	stopReason   string
+	responseType string
 )
 
 const (
-	User, Assistant                  role       = "user", "assistant"
-	Opus, Sonnet, Haiku              model      = "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"
-	EndTurn, MaxTokens, StopSequence stopReason = "end_turn", "max_tokens", "stop_sequence"
+	User, Assistant                  role         = "user", "assistant"
+	Opus, Sonnet, Haiku              model        = "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"
+	EndTurn, MaxTokens, StopSequence stopReason   = "end_turn", "max_tokens", "stop_sequence"
+	text, toolUse                    responseType = "text", "tool_use"
 )
 
 type Message struct {
-	Role    role   `json:"role"`    // required
-	Content string `json:"content"` //required
+	Role    role   `json:"role"`
+	Content string `json:"content"`
 	System  string `json:"system,omitempty"`
 }
 
@@ -60,17 +69,26 @@ type Request struct {
 	MaxTokens int       `json:"max_tokens"`
 }
 
+type ResponseMessage struct {
+	Type responseType `json:"type"`
+
+	// text response
+	Text string `json:"text"`
+
+	// tool_use response
+	Id    string      `json:"id"`
+	Name  string      `json:"name"`
+	Input interface{} `json:"input"`
+}
+
 type Response struct {
-	ID      string `json:"id"`
-	Type    string `json:"type"`
-	Role    role   `json:"role"`
-	Content []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
-	} `json:"content"`
-	Model        model      `json:"model"`
-	StopReason   stopReason `json:"stop_reason"`
-	StopSequence string     `json:"stop_sequence"`
+	ID           string            `json:"id"`
+	Type         string            `json:"type"`
+	Role         role              `json:"role"`
+	Content      []ResponseMessage `json:"content"`
+	Model        model             `json:"model"`
+	StopReason   stopReason        `json:"stop_reason"`
+	StopSequence string            `json:"stop_sequence"`
 	Usage        struct {
 		InputTokens  int `json:"input_tokens"`
 		OutputTokens int `json:"output_tokens"`
@@ -110,11 +128,7 @@ func (r *Request) Post() (*Response, error) {
 		if err != nil {
 			return nil, fmt.Errorf("API request failed with status code: %d, failed to read response body: %v", resp.StatusCode, err)
 		}
-
-		// Convert the response body to a string
-		bodyString := string(body)
-
-		return nil, fmt.Errorf("API request failed with status code: %d, response body: %s", resp.StatusCode, bodyString)
+		return nil, fmt.Errorf("API request failed with status code: %d, response body: %s", resp.StatusCode, string(body))
 	}
 
 	// Decode the JSON response
