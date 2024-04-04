@@ -24,31 +24,14 @@ func main() {
 	// Start the conversation
 	conversation := make(Conversation, 0)
 	scanner := bufio.NewScanner(os.Stdin)
-	for {
-		fmt.Print("You: ")
-		if !scanner.Scan() {
-			break
-		}
-		input := scanner.Text()
-		if strings.ToLower(input) == "exit" {
-			break
-		}
-
-		// Converse
-		conversation = append(conversation, Message{Role: User, Content: input})
-		req := &Request{Model: Opus, Messages: conversation, MaxTokens: 2048, System: SYS_PROMPT}
-		resp, err := req.Post()
-		if err != nil {
-			fmt.Println("Error making request: " + err.Error())
-		} else {
-			fmt.Printf("Claude: %v (Tokens: in %d, out %d)\n", resp.Content, resp.Usage.InputTokens, resp.Usage.OutputTokens)
-		}
-		conversation.AppendResponse(resp.Content[0])
-	}
+	conversation.Converse(scanner)
 }
 
-// # AGENCY AND CONVERSATION
-// Functions and logic for managing the flow of conversation & workflow with Claude
+// # TOOLS
+// Tools that Claude can use to take actions on the user's behalf
+
+// # CONVERSATION
+// Functions and logic for managing the flow of conversation with Claude
 const SYS_PROMPT = `
 	You are Super Claude, an AI assistant designed to help employees and developers work with Super-Sod's backend microservices. 
 	We will start off by working with the 'go-postal' REST API. Use the tools provided to fulfil user requests.
@@ -62,6 +45,31 @@ func (c *Conversation) AppendResponse(msg ResponseMessage) {
 	if msg.Type == text {
 		newMsg := Message{Role: Assistant, Content: msg.Text}
 		*c = append(*c, newMsg)
+	}
+}
+
+func (c *Conversation) Converse(scanner *bufio.Scanner) {
+	for {
+		// Get user input
+		fmt.Print("You: ")
+		if !scanner.Scan() {
+			break
+		}
+		input := scanner.Text()
+		if strings.ToLower(input) == "exit" {
+			break
+		}
+
+		// Converse
+		*c = append(*c, Message{Role: User, Content: input})
+		req := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT}
+		resp, err := req.Post()
+		if err != nil {
+			fmt.Println("Error making request: " + err.Error())
+		} else {
+			fmt.Printf("Claude: %v (Tokens: in %d, out %d)\n", resp.Content, resp.Usage.InputTokens, resp.Usage.OutputTokens)
+			c.AppendResponse(resp.Content[0])
+		}
 	}
 }
 
