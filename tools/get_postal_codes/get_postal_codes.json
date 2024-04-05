@@ -6,7 +6,7 @@
         "properties": {
             "postal_code": {
                 "type": "string",
-                "description": "Five-digit US postal code"
+                "description": "Five-digit US postal code, e.g. 29910"
             }
         }
     },

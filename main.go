@@ -70,12 +70,11 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]tools.Tool) {
 		}
 		for _, msg := range resp.Content {
 			if msg.Type == message || msg.Type == text {
-				fmt.Printf("Claude: %s)\n", msg.Text)
+				fmt.Printf("\nClaude: %s)\n", msg.Text)
 				c.AppendResponse(msg)
 			} else if msg.Type == toolUse {
-				fmt.Println("Claude wants to use tool:", msg.Name, msg.Input)
+				fmt.Println("\nClaude wants to use tool:", msg.Name, msg.Input)
 				f := tools.ToolMap[msg.Name]
-				fmt.Println(msg.Name, f)
 				err := f(msg.Input)
 				if err != nil {
 					fmt.Println("ERROR using tool", err)
@@ -91,7 +90,7 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]tools.Tool) {
 }
 
 func handleUserInput(scanner *bufio.Scanner) string {
-	fmt.Print("You: ")
+	fmt.Print("\nYou: ")
 	if !scanner.Scan() {
 		return ""
 	}
