@@ -31,8 +31,8 @@ const (
 )
 
 type Message struct {
-	Role    MessageRole       `json:"role"`
-	Content []ResponseMessage `json:"content"`
+	Role    MessageRole `json:"role"`
+	Content []Content   `json:"content"`
 }
 
 type Request struct {
@@ -43,7 +43,7 @@ type Request struct {
 	Tools     []Tool       `json:"tools,omitempty"`
 }
 
-type ResponseMessage struct {
+type Content struct {
 	Type ResponseType `json:"type"`
 
 	// text response
@@ -60,13 +60,13 @@ type ResponseMessage struct {
 }
 
 type Response struct {
-	ID           string            `json:"id"`
-	Type         ResponseType      `json:"type"`
-	Role         MessageRole       `json:"role"`
-	Content      []ResponseMessage `json:"content"`
-	Model        Model             `json:"model"`
-	StopReason   StopReason        `json:"stop_reason"`
-	StopSequence string            `json:"stop_sequence"`
+	ID           string       `json:"id"`
+	Type         ResponseType `json:"type"`
+	Role         MessageRole  `json:"role"`
+	Content      []Content    `json:"content"`
+	Model        Model        `json:"model"`
+	StopReason   StopReason   `json:"stop_reason"`
+	StopSequence string       `json:"stop_sequence"`
 	Usage        struct {
 		InputTokens  int `json:"input_tokens"`
 		OutputTokens int `json:"output_tokens"`

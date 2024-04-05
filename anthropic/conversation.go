@@ -20,23 +20,24 @@ var currentToolUId string
 
 type Conversation []Message
 
-func (c *Conversation) AppendResponse(msg ResponseMessage, data *ResponseMessage) {
-	content := make([]ResponseMessage, 1)
-	if msg.Type == Text {
-		content[0] = msg
+func (c *Conversation) AppendContent(cont Content) {
+	// Could append a message to the conversation OR content to a message depending on the content type
+	content := make([]Content, 1)
+	if cont.Type == Text {
+		content[0] = cont
 		newMsg := Message{Role: Assistant, Content: content}
 		*c = append(*c, newMsg)
-	} else if msg.Type == ToolResult {
-		msg.ToolUseId = currentToolUId
-		content[0] = msg
+	} else if cont.Type == ToolResult {
+		cont.ToolUseId = currentToolUId
+		content[0] = cont
 		newMsg := Message{Role: User, Content: content}
 		*c = append(*c, newMsg)
-	} else if msg.Type == ToolUse {
-		fmt.Println("tool_use not logged for ID", msg.Id)
-		currentToolUId = msg.Id
-		(*c)[len(*c)-1].Content = append((*c)[len(*c)-1].Content, msg)
+	} else if cont.Type == ToolUse {
+		fmt.Println("tool_use not logged for ID", cont.Id)
+		currentToolUId = cont.Id
+		(*c)[len(*c)-1].Content = append((*c)[len(*c)-1].Content, cont)
 	} else {
-		fmt.Println("Ignoring message of type", msg.Type)
+		fmt.Println("Ignoring message of type", cont.Type)
 	}
 }
 
@@ -66,7 +67,7 @@ func (c *Conversation) loop(req *Request) {
 	for _, msg := range resp.Content {
 		if msg.Type == MessageResp || msg.Type == Text {
 			fmt.Printf("\nClaude: %s)\n", msg.Text)
-			c.AppendResponse(msg, nil)
+			c.AppendContent(msg)
 		} else if msg.Type == ToolUse {
 			fmt.Println("\nClaude wants to use tool:", msg.Name, msg.Input)
 			toolResp, err := ToolMap[msg.Name](msg.Input)
@@ -75,7 +76,7 @@ func (c *Conversation) loop(req *Request) {
 				return
 			}
 
-			c.AppendResponse(msg, toolResp)
+			c.AppendContent(msg)
 			fmt.Println("Used tool", msg.Name, "and got response", toolResp)
 			toolResultMsg := Message{Role: User, Content: makeToolResponseContent(toolResp)}
 			*c = append(*c, toolResultMsg)
@@ -93,7 +94,7 @@ func (c *Conversation) loop(req *Request) {
 			for _, newMsg := range newResp.Content {
 				if newMsg.Type == MessageResp || newMsg.Type == Text {
 					fmt.Printf("\nClaude: %s)\n", newMsg.Text)
-					c.AppendResponse(newMsg, nil)
+					c.AppendContent(newMsg)
 				} else {
 					fmt.Println("Error: Unknown response type", newMsg.Type)
 					return
@@ -106,15 +107,15 @@ func (c *Conversation) loop(req *Request) {
 	}
 }
 
-func makeTextContent(s string) []ResponseMessage {
-	content := make([]ResponseMessage, 1)
-	content[0] = ResponseMessage{Type: Text, Text: s}
+func makeTextContent(s string) []Content {
+	content := make([]Content, 1)
+	content[0] = Content{Type: Text, Text: s}
 	return content
 }
 
-func makeToolResponseContent(data *ResponseMessage) []ResponseMessage {
-	content := make([]ResponseMessage, 1)
-	content[0] = ResponseMessage{Type: ToolResult, ToolUseId: currentToolUId, Content: data.Content}
+func makeToolResponseContent(data *Content) []Content {
+	content := make([]Content, 1)
+	content[0] = Content{Type: ToolResult, ToolUseId: currentToolUId, Content: data.Content}
 	return content
 }
 

@@ -24,7 +24,7 @@ type PCMResponse struct {
 	Active         bool    `json:"active"`
 }
 
-func GET_POSTAL_CODES(params map[string]any) (*anthropic.ResponseMessage, error) {
+func GET_POSTAL_CODES(params map[string]any) (*anthropic.Content, error) {
 	postalCode, ok := params["postal_code"]
 	if !ok {
 		return nil, errors.New("must provide postal_code")
@@ -60,5 +60,5 @@ func GET_POSTAL_CODES(params map[string]any) (*anthropic.ResponseMessage, error)
 	// 	return nil, fmt.Errorf("failed to decode response: %v", err)
 	// }
 
-	return &anthropic.ResponseMessage{Type: anthropic.ToolResult, Content: qzs}, nil
+	return &anthropic.Content{Type: anthropic.ToolResult, Content: qzs}, nil
 }
