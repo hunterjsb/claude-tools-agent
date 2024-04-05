@@ -1,11 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/hunterjsb/super-claude/anthropic"
 )
 
 type PCMResponse struct {
@@ -23,7 +24,7 @@ type PCMResponse struct {
 	Active         bool    `json:"active"`
 }
 
-func GET_POSTAL_CODES(params map[string]any) (any, error) {
+func GET_POSTAL_CODES(params map[string]any) (*anthropic.ResponseMessage, error) {
 	postalCode, ok := params["postal_code"]
 	if !ok {
 		return nil, errors.New("must provide postal_code")
@@ -47,11 +48,17 @@ func GET_POSTAL_CODES(params map[string]any) (any, error) {
 	}
 
 	// Decode the JSON response
-	var respData PCMResponse
-	err = json.NewDecoder(resp.Body).Decode(&respData)
+	qz, err := (io.ReadAll(resp.Body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %v", err)
 	}
+	qzs := string(qz)
 
-	return respData, nil
+	// var respData PCMResponse
+	// err = json.NewDecoder(resp.Body).Decode(&respData)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to decode response: %v", err)
+	// }
+
+	return &anthropic.ResponseMessage{Type: anthropic.ToolResult, Content: qzs}, nil
 }

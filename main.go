@@ -7,7 +7,6 @@ import (
 
 	"github.com/hunterjsb/super-claude/anthropic"
 	"github.com/hunterjsb/super-claude/config"
-	"github.com/hunterjsb/super-claude/tools"
 )
 
 func main() {
@@ -16,7 +15,7 @@ func main() {
 	config.Cfg.Load()
 
 	// Get tools
-	tools, err := tools.LoadToolsFromDirectory("tools")
+	tools, err := anthropic.LoadToolsFromDirectory("tools")
 	if err != nil {
 		log.Fatal("FATAL: Error loading tool from JSON file.", err)
 	}

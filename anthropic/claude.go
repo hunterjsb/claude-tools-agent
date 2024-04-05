@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/hunterjsb/super-claude/config"
-	"github.com/hunterjsb/super-claude/tools"
 )
 
 // # CLAUDE API TYPES
@@ -18,34 +17,34 @@ import (
 const MESSAGES_URL = "https://api.anthropic.com/v1/messages"
 
 type (
-	role         string
-	model        string
-	stopReason   string
-	responseType string
+	MessageRole  string
+	Model        string
+	StopReason   string
+	ResponseType string
 )
 
 const (
-	User, Assistant                    role         = "user", "assistant"
-	Opus, Sonnet, Haiku                model        = "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"
-	EndTurn, MaxTokens, StopSequence   stopReason   = "end_turn", "max_tokens", "stop_sequence"
-	text, toolUse, message, toolResult responseType = "text", "tool_use", "message", "tool_result"
+	User, Assistant                        MessageRole  = "user", "assistant"
+	Opus, Sonnet, Haiku                    Model        = "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"
+	EndTurn, MaxTokens, StopSequence       StopReason   = "end_turn", "max_tokens", "stop_sequence"
+	Text, ToolUse, MessageResp, ToolResult ResponseType = "text", "tool_use", "message", "tool_result"
 )
 
 type Message struct {
-	Role    role              `json:"role"`
+	Role    MessageRole       `json:"role"`
 	Content []ResponseMessage `json:"content"`
 }
 
 type Request struct {
-	Model     model        `json:"model"`
+	Model     Model        `json:"model"`
 	Messages  Conversation `json:"messages"`
 	MaxTokens int          `json:"max_tokens"`
 	System    string       `json:"system,omitempty"`
-	Tools     []tools.Tool `json:"tools,omitempty"`
+	Tools     []Tool       `json:"tools,omitempty"`
 }
 
 type ResponseMessage struct {
-	Type responseType `json:"type"`
+	Type ResponseType `json:"type"`
 
 	// text response
 	Text string `json:"text,omitempty"`
@@ -57,15 +56,16 @@ type ResponseMessage struct {
 
 	// tool_response user response
 	ToolUseId string `json:"tool_use_id,omitempty"`
+	Content   string `json:"content,omitempty"`
 }
 
 type Response struct {
 	ID           string            `json:"id"`
-	Type         responseType      `json:"type"`
-	Role         role              `json:"role"`
+	Type         ResponseType      `json:"type"`
+	Role         MessageRole       `json:"role"`
 	Content      []ResponseMessage `json:"content"`
-	Model        model             `json:"model"`
-	StopReason   stopReason        `json:"stop_reason"`
+	Model        Model             `json:"model"`
+	StopReason   StopReason        `json:"stop_reason"`
 	StopSequence string            `json:"stop_sequence"`
 	Usage        struct {
 		InputTokens  int `json:"input_tokens"`
