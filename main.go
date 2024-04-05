@@ -55,7 +55,11 @@ func (c *Conversation) AppendResponse(msg ResponseMessage) {
 
 func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]tools.Tool) {
 	for {
+		// Get user input (or quit)
 		userInput := handleUserInput(scanner)
+		if userInput == "" {
+			break
+		}
 
 		// Converse
 		*c = append(*c, Message{Role: User, Content: userInput})
@@ -70,7 +74,6 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]tools.Tool) {
 				c.AppendResponse(msg)
 			} else if msg.Type == toolUse {
 				fmt.Println("Claude wants to use tool:", msg.Name, msg.Input)
-				fmt.Println("ToolMap:", tools.ToolMap)
 				f := tools.ToolMap[msg.Name]
 				fmt.Println(msg.Name, f)
 				err := f(msg.Input)
@@ -80,7 +83,7 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]tools.Tool) {
 					fmt.Println("Used tool", msg.Name)
 				}
 			} else {
-				fmt.Println("UNKNOWN RESPONSE TYPE", msg.Type)
+				fmt.Println("Error: Unknown response type", msg.Type)
 			}
 		}
 
