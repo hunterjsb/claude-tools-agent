@@ -53,13 +53,13 @@ func (c *Conversation) AppendResponse(msg ResponseMessage) {
 	}
 }
 
-func (c *Conversation) Converse(scanner *bufio.Scanner, tools *[]tools.Tool) {
+func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]tools.Tool) {
 	for {
-		input := handleUserInput(scanner)
+		userInput := handleUserInput(scanner)
 
 		// Converse
-		*c = append(*c, Message{Role: User, Content: input})
-		req := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: *tools}
+		*c = append(*c, Message{Role: User, Content: userInput})
+		req := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: *t}
 		resp, err := req.Post()
 		if err != nil {
 			fmt.Println("Error making request: " + err.Error())
@@ -70,6 +70,15 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, tools *[]tools.Tool) {
 				c.AppendResponse(msg)
 			} else if msg.Type == toolUse {
 				fmt.Println("Claude wants to use tool:", msg.Name, msg.Input)
+				fmt.Println("ToolMap:", tools.ToolMap)
+				f := tools.ToolMap[msg.Name]
+				fmt.Println(msg.Name, f)
+				err := f(msg.Input)
+				if err != nil {
+					fmt.Println("ERROR using tool", err)
+				} else {
+					fmt.Println("Used tool", msg.Name)
+				}
 			} else {
 				fmt.Println("UNKNOWN RESPONSE TYPE", msg.Type)
 			}

@@ -21,7 +21,7 @@ type Tool struct {
 
 type UseTool func(map[string]any) error
 
-var Tools = map[string]UseTool{}
+var ToolMap = map[string]UseTool{}
 
 type InputSchema struct {
 	Type       string                 `json:"type"`
@@ -93,7 +93,7 @@ func LoadToolsFromDirectory(dir string) ([]Tool, error) {
 			}
 
 			// Add the tool to the Tools map
-			Tools[toolName] = useTool
+			ToolMap[toolName] = useTool
 		}
 
 		return nil
