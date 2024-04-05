@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -22,12 +23,10 @@ func main() {
 	cfg.Load()
 
 	// Get tools
-	tool, err := LoadToolFromJSONFile("tools/postal_codes.json")
+	tools, err := LoadToolsFromDirectory("tools")
 	if err != nil {
 		log.Fatal("FATAL: Error loading tool from JSON file.")
 	}
-	tools := make([]Tool, 1)
-	tools[0] = *tool
 
 	// Start the conversation
 	conversation := make(Conversation, 0)
@@ -35,13 +34,74 @@ func main() {
 	conversation.Converse(scanner, &tools)
 }
 
+// # CONVERSATION
+// Functions and logic for managing the flow of conversation with Claude
+const SYS_PROMPT = `
+	You are Super Claude, an AI assistant designed to help employees and developers work with Super-Sod's backend microservices. 
+	We will start off by working with the 'go-postal' REST API. Use the tools provided to fulfil user requests.
+	Do your best to infer user intent and take actions on their behalf.
+
+	Give brief responses - we are in dev mode and many conversations are for testing purposes.
+`
+
+type Conversation []Message
+
+func (c *Conversation) AppendResponse(msg ResponseMessage) {
+	if msg.Type == text {
+		newMsg := Message{Role: Assistant, Content: msg.Text}
+		*c = append(*c, newMsg)
+	}
+}
+
+func (c *Conversation) Converse(scanner *bufio.Scanner, tools *[]Tool) {
+	for {
+		input := handleUserInput(scanner)
+
+		// Converse
+		*c = append(*c, Message{Role: User, Content: input})
+		req := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: *tools}
+		resp, err := req.Post()
+		if err != nil {
+			fmt.Println("Error making request: " + err.Error())
+		}
+		for _, msg := range resp.Content {
+			if msg.Type == message || msg.Type == text {
+				fmt.Printf("Claude: %s)\n", msg.Text)
+				c.AppendResponse(msg)
+			} else if msg.Type == toolUse {
+				fmt.Println("RESPONSE TYPE TOOL USE IS NOT YET IMPLEMENTED")
+			} else {
+				fmt.Println("UNKNOWN RESPONSE TYPE", msg.Type)
+			}
+		}
+
+	}
+}
+
+func handleUserInput(scanner *bufio.Scanner) string {
+	// Get user input
+	fmt.Print("You: ")
+	if !scanner.Scan() {
+		return ""
+	}
+	input := scanner.Text()
+	if strings.ToLower(input) == "exit" {
+		return ""
+	}
+	return input
+}
+
 // # TOOLS
 // Tools that Claude can use to take actions on the user's behalf
+// They are specified in the `tools` directory as JSON files
+// The name of each tool is mapped to a function
 type Tool struct {
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
 	InputSchema InputSchema `json:"input_schema"`
 }
+
+type UseTool func(interface{})
 
 type InputSchema struct {
 	Type       string                 `json:"type"`
@@ -70,47 +130,30 @@ func LoadToolFromJSONFile(filename string) (*Tool, error) {
 	return tool, nil
 }
 
-// # CONVERSATION
-// Functions and logic for managing the flow of conversation with Claude
-const SYS_PROMPT = `
-	You are Super Claude, an AI assistant designed to help employees and developers work with Super-Sod's backend microservices. 
-	We will start off by working with the 'go-postal' REST API. Use the tools provided to fulfil user requests.
+func LoadToolsFromDirectory(dir string) ([]Tool, error) {
+	var tools []Tool
 
-	Give brief responses - we are in dev mode and many conversations are for testing purposes.
-`
-
-type Conversation []Message
-
-func (c *Conversation) AppendResponse(msg ResponseMessage) {
-	if msg.Type == text {
-		newMsg := Message{Role: Assistant, Content: msg.Text}
-		*c = append(*c, newMsg)
-	}
-}
-
-func (c *Conversation) Converse(scanner *bufio.Scanner, tools *[]Tool) {
-	for {
-		// Get user input
-		fmt.Print("You: ")
-		if !scanner.Scan() {
-			break
-		}
-		input := scanner.Text()
-		if strings.ToLower(input) == "exit" {
-			break
-		}
-
-		// Converse
-		*c = append(*c, Message{Role: User, Content: input})
-		req := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: *tools}
-		resp, err := req.Post()
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Println("Error making request: " + err.Error())
-		} else {
-			fmt.Printf("Claude: %v (Tokens: in %d, out %d)\n", resp.Content, resp.Usage.InputTokens, resp.Usage.OutputTokens)
-			c.AppendResponse(resp.Content[0])
+			return err
 		}
+
+		if !info.IsDir() && filepath.Ext(path) == ".json" {
+			tool, err := LoadToolFromJSONFile(path)
+			if err != nil {
+				return fmt.Errorf("failed to load tool from file '%s': %v", path, err)
+			}
+			tools = append(tools, *tool)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk directory '%s': %v", dir, err)
 	}
+
+	return tools, nil
 }
 
 // # CLAUDE API TYPES
@@ -127,10 +170,10 @@ type (
 )
 
 const (
-	User, Assistant                  role         = "user", "assistant"
-	Opus, Sonnet, Haiku              model        = "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"
-	EndTurn, MaxTokens, StopSequence stopReason   = "end_turn", "max_tokens", "stop_sequence"
-	text, toolUse                    responseType = "text", "tool_use"
+	User, Assistant                    role         = "user", "assistant"
+	Opus, Sonnet, Haiku                model        = "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"
+	EndTurn, MaxTokens, StopSequence   stopReason   = "end_turn", "max_tokens", "stop_sequence"
+	text, toolUse, message, toolResult responseType = "text", "tool_use", "message", "tool_result"
 )
 
 type Message struct {
@@ -160,7 +203,7 @@ type ResponseMessage struct {
 
 type Response struct {
 	ID           string            `json:"id"`
-	Type         string            `json:"type"`
+	Type         responseType      `json:"type"`
 	Role         role              `json:"role"`
 	Content      []ResponseMessage `json:"content"`
 	Model        model             `json:"model"`
