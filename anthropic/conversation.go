@@ -27,13 +27,14 @@ func (c *Conversation) AppendResponse(msg ResponseMessage, data *ResponseMessage
 		newMsg := Message{Role: Assistant, Content: content}
 		*c = append(*c, newMsg)
 	} else if msg.Type == ToolResult {
+		msg.ToolUseId = currentToolUId
 		content[0] = msg
 		newMsg := Message{Role: User, Content: content}
 		*c = append(*c, newMsg)
 	} else if msg.Type == ToolUse {
 		fmt.Println("tool_use not logged for ID", msg.Id)
 		currentToolUId = msg.Id
-		// (*c)[len(*c)-1].Content = (*c)[len(*c)-1].Content + fmt.Sprintf("%v", msg.Input)
+		(*c)[len(*c)-1].Content = append((*c)[len(*c)-1].Content, msg)
 	} else {
 		fmt.Println("Ignoring message of type", msg.Type)
 	}
@@ -81,8 +82,6 @@ func (c *Conversation) loop(req *Request) {
 			fmt.Println("TOOL RESPONSE:::", *c)
 
 			// Send a new request to Claude asking for the next step or a summary
-			summaryContent := makeTextContent("Based on the information obtained so far, here are the {next steps | summary}")
-			*c = append(*c, Message{Role: Assistant, Content: summaryContent})
 			newReq := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: req.Tools}
 			newResp, err := newReq.Post()
 			if err != nil {
