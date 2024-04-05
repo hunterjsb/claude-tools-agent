@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"strings"
+
+	"github.com/hunterjsb/super-claude/utils"
 )
 
 // # CONVERSATION
@@ -68,7 +70,7 @@ func (c *Conversation) talk(req *Request) {
 
 	for _, msg := range resp.Content {
 		if msg.Type == MessageResp || msg.Type == Text {
-			fmt.Printf("\nClaude: %s)\n", msg.Text)
+			utils.CPrint("cyan", "\nClaude: %s)\n", msg.Text)
 			c.appendContent(msg)
 		} else if msg.Type == ToolUse {
 			fmt.Println("\nClaude wants to use tool:", msg.Name, msg.Input)
