@@ -9,9 +9,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 
+	"github.com/hunterjsb/super-claude/tools"
 	"github.com/joho/godotenv"
 )
 
@@ -23,9 +23,9 @@ func main() {
 	cfg.Load()
 
 	// Get tools
-	tools, err := LoadToolsFromDirectory("tools")
+	tools, err := tools.LoadToolsFromDirectory("tools")
 	if err != nil {
-		log.Fatal("FATAL: Error loading tool from JSON file.")
+		log.Fatal("FATAL: Error loading tool from JSON file.", err)
 	}
 
 	// Start the conversation
@@ -53,7 +53,7 @@ func (c *Conversation) AppendResponse(msg ResponseMessage) {
 	}
 }
 
-func (c *Conversation) Converse(scanner *bufio.Scanner, tools *[]Tool) {
+func (c *Conversation) Converse(scanner *bufio.Scanner, tools *[]tools.Tool) {
 	for {
 		input := handleUserInput(scanner)
 
@@ -69,7 +69,7 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, tools *[]Tool) {
 				fmt.Printf("Claude: %s)\n", msg.Text)
 				c.AppendResponse(msg)
 			} else if msg.Type == toolUse {
-				fmt.Println("RESPONSE TYPE TOOL USE IS NOT YET IMPLEMENTED")
+				fmt.Println("Claude wants to use tool:", msg.Name, msg.Input)
 			} else {
 				fmt.Println("UNKNOWN RESPONSE TYPE", msg.Type)
 			}
@@ -79,7 +79,6 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, tools *[]Tool) {
 }
 
 func handleUserInput(scanner *bufio.Scanner) string {
-	// Get user input
 	fmt.Print("You: ")
 	if !scanner.Scan() {
 		return ""
@@ -89,71 +88,6 @@ func handleUserInput(scanner *bufio.Scanner) string {
 		return ""
 	}
 	return input
-}
-
-// # TOOLS
-// Tools that Claude can use to take actions on the user's behalf
-// They are specified in the `tools` directory as JSON files
-// The name of each tool is mapped to a function
-type Tool struct {
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	InputSchema InputSchema `json:"input_schema"`
-}
-
-type UseTool func(interface{})
-
-type InputSchema struct {
-	Type       string                 `json:"type"`
-	Properties map[string]interface{} `json:"properties"`
-	Requires   []string               `json:"requires"`
-}
-
-func LoadToolFromJSONFile(filename string) (*Tool, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read JSON file: %v", err)
-	}
-
-	var toolJSON Tool
-	err = json.Unmarshal(data, &toolJSON)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
-	}
-
-	tool := &Tool{
-		Name:        toolJSON.Name,
-		Description: toolJSON.Description,
-		InputSchema: toolJSON.InputSchema,
-	}
-
-	return tool, nil
-}
-
-func LoadToolsFromDirectory(dir string) ([]Tool, error) {
-	var tools []Tool
-
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() && filepath.Ext(path) == ".json" {
-			tool, err := LoadToolFromJSONFile(path)
-			if err != nil {
-				return fmt.Errorf("failed to load tool from file '%s': %v", path, err)
-			}
-			tools = append(tools, *tool)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to walk directory '%s': %v", dir, err)
-	}
-
-	return tools, nil
 }
 
 // # CLAUDE API TYPES
@@ -186,7 +120,7 @@ type Request struct {
 	Messages  Conversation `json:"messages"`
 	MaxTokens int          `json:"max_tokens"`
 	System    string       `json:"system,omitempty"`
-	Tools     []Tool       `json:"tools,omitempty"`
+	Tools     []tools.Tool `json:"tools,omitempty"`
 }
 
 type ResponseMessage struct {
@@ -196,9 +130,9 @@ type ResponseMessage struct {
 	Text string `json:"text"`
 
 	// tool_use response
-	Id    string      `json:"id"`
-	Name  string      `json:"name"`
-	Input interface{} `json:"input"`
+	Id    string         `json:"id"`
+	Name  string         `json:"name"`
+	Input map[string]any `json:"input"`
 }
 
 type Response struct {
