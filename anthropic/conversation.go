@@ -37,11 +37,10 @@ func (c *Conversation) appendContent(cont Content) {
 		content[0] = cont
 		c.appendMsg(Message{Role: User, Content: content})
 	} else if cont.Type == ToolUse {
-		fmt.Println("tool_use not logged for ID", cont.Id)
 		currentToolUId = cont.Id
 		(*c)[len(*c)-1].Content = append((*c)[len(*c)-1].Content, cont) // append to content instead of conversation
 	} else {
-		fmt.Println("Ignoring message of type", cont.Type)
+		utils.CPrint("gray", "Ignoring message of type", cont.Type)
 	}
 }
 
@@ -64,24 +63,24 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]Tool) {
 func (c *Conversation) talk(req *Request) {
 	resp, err := req.Post()
 	if err != nil {
-		fmt.Println("Error making request: " + err.Error())
+		utils.CPrint("red", "Error making request: "+err.Error())
 		return
 	}
 
 	for _, msg := range resp.Content {
 		if msg.Type == MessageResp || msg.Type == Text {
-			utils.CPrint("cyan", "\nClaude: %s)\n", msg.Text)
+			utils.CPrint("white", "\nClaude: \n", msg.Text)
 			c.appendContent(msg)
 		} else if msg.Type == ToolUse {
-			fmt.Println("\nClaude wants to use tool:", msg.Name, msg.Input)
+			utils.CPrint("blue", "Claude wants to use tool:", msg.Name, msg.Input)
 			toolResp, err := ToolMap[msg.Name](msg.Input)
 			if err != nil {
-				fmt.Println("ERROR using tool", err)
+				utils.CPrint("red", "ERROR using tool", err)
 				return
 			}
 
 			c.appendContent(msg)
-			fmt.Println("Used tool", msg.Name, "and got response", toolResp)
+			utils.CPrint("gray", "Used tool", msg.Name, "and got response", toolResp)
 			toolResultMsg := Message{Role: User, Content: makeToolResponseContent(toolResp)}
 			*c = append(*c, toolResultMsg)
 			// fmt.Println("TOOL RESPONSE:::", *c)
@@ -90,22 +89,22 @@ func (c *Conversation) talk(req *Request) {
 			newReq := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: req.Tools}
 			newResp, err := newReq.Post()
 			if err != nil {
-				fmt.Println("Error making request: " + err.Error())
+				utils.CPrint("red", "Error making request: "+err.Error())
 				return
 			}
 
 			// Process the new response from Claude
 			for _, newMsg := range newResp.Content {
 				if newMsg.Type == MessageResp || newMsg.Type == Text {
-					fmt.Printf("\nClaude: %s)\n", newMsg.Text)
+					utils.CPrint("white", "\nClaude: %s)\n", newMsg.Text)
 					c.appendContent(newMsg)
 				} else {
-					fmt.Println("Error: Unknown response type", newMsg.Type)
+					utils.CPrint("red", "Error: Unknown response type", newMsg.Type)
 					return
 				}
 			}
 		} else {
-			fmt.Println("Error: Unknown response type", msg.Type)
+			utils.CPrint("red", "Error: Unknown response type", msg.Type)
 			return
 		}
 	}
