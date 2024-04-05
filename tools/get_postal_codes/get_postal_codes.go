@@ -9,21 +9,6 @@ import (
 	"github.com/hunterjsb/super-claude/anthropic"
 )
 
-type PCMResponse struct {
-	PostalCode     string  `json:"postal_code"`
-	City           string  `json:"city"`
-	County         string  `json:"county"`
-	GeoState       string  `json:"geo_state"`
-	Country        string  `json:"country"`
-	MarketID       int32   `json:"market_id"`
-	MarketName     string  `json:"market_name"`
-	MasID          *string `json:"mas_id"`
-	ErpID          *int32  `json:"erp_id"`
-	OnftProdTeamID *string `json:"onft_prod_team_id"`
-	OnftDevTeamID  *string `json:"onft_dev_team_id"`
-	Active         bool    `json:"active"`
-}
-
 func GET_POSTAL_CODES(params map[string]any) (*anthropic.Content, error) {
 	postalCode, ok := params["postal_code"]
 	if !ok {
@@ -53,12 +38,6 @@ func GET_POSTAL_CODES(params map[string]any) (*anthropic.Content, error) {
 		return nil, fmt.Errorf("failed to decode response: %v", err)
 	}
 	qzs := string(qz)
-
-	// var respData PCMResponse
-	// err = json.NewDecoder(resp.Body).Decode(&respData)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to decode response: %v", err)
-	// }
 
 	return &anthropic.Content{Type: anthropic.ToolResult, Content: qzs}, nil
 }

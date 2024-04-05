@@ -16,14 +16,14 @@ import (
 type Tool struct {
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
-	InputSchema InputSchema `json:"input_schema"`
+	InputSchema inputSchema `json:"input_schema"`
 }
 
-type UseTool func(map[string]any) (*Content, error)
+type useTool func(map[string]any) (*Content, error)
 
-var ToolMap = map[string]UseTool{}
+var ToolMap = map[string]useTool{}
 
-type InputSchema struct {
+type inputSchema struct {
 	Type       string                 `json:"type"`
 	Properties map[string]interface{} `json:"properties"`
 	Requires   []string               `json:"requires"`

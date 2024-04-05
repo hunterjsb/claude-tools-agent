@@ -20,22 +20,24 @@ var currentToolUId string
 
 type Conversation []Message
 
-func (c *Conversation) AppendContent(cont Content) {
+func (c *Conversation) appendMsg(m Message) { // append Message to Conversation receiver
+	*c = append(*c, m)
+}
+
+func (c *Conversation) appendContent(cont Content) {
 	// Could append a message to the conversation OR content to a message depending on the content type
 	content := make([]Content, 1)
 	if cont.Type == Text {
 		content[0] = cont
-		newMsg := Message{Role: Assistant, Content: content}
-		*c = append(*c, newMsg)
+		c.appendMsg(Message{Role: Assistant, Content: content})
 	} else if cont.Type == ToolResult {
 		cont.ToolUseId = currentToolUId
 		content[0] = cont
-		newMsg := Message{Role: User, Content: content}
-		*c = append(*c, newMsg)
+		c.appendMsg(Message{Role: User, Content: content})
 	} else if cont.Type == ToolUse {
 		fmt.Println("tool_use not logged for ID", cont.Id)
 		currentToolUId = cont.Id
-		(*c)[len(*c)-1].Content = append((*c)[len(*c)-1].Content, cont)
+		(*c)[len(*c)-1].Content = append((*c)[len(*c)-1].Content, cont) // append to content instead of conversation
 	} else {
 		fmt.Println("Ignoring message of type", cont.Type)
 	}
@@ -53,11 +55,11 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]Tool) {
 		content := makeTextContent(userInput)
 		*c = append(*c, Message{Role: User, Content: content})
 		req := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: *t}
-		c.loop(req)
+		c.talk(req)
 	}
 }
 
-func (c *Conversation) loop(req *Request) {
+func (c *Conversation) talk(req *Request) {
 	resp, err := req.Post()
 	if err != nil {
 		fmt.Println("Error making request: " + err.Error())
@@ -67,7 +69,7 @@ func (c *Conversation) loop(req *Request) {
 	for _, msg := range resp.Content {
 		if msg.Type == MessageResp || msg.Type == Text {
 			fmt.Printf("\nClaude: %s)\n", msg.Text)
-			c.AppendContent(msg)
+			c.appendContent(msg)
 		} else if msg.Type == ToolUse {
 			fmt.Println("\nClaude wants to use tool:", msg.Name, msg.Input)
 			toolResp, err := ToolMap[msg.Name](msg.Input)
@@ -76,11 +78,11 @@ func (c *Conversation) loop(req *Request) {
 				return
 			}
 
-			c.AppendContent(msg)
+			c.appendContent(msg)
 			fmt.Println("Used tool", msg.Name, "and got response", toolResp)
 			toolResultMsg := Message{Role: User, Content: makeToolResponseContent(toolResp)}
 			*c = append(*c, toolResultMsg)
-			fmt.Println("TOOL RESPONSE:::", *c)
+			// fmt.Println("TOOL RESPONSE:::", *c)
 
 			// Send a new request to Claude asking for the next step or a summary
 			newReq := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: req.Tools}
@@ -94,7 +96,7 @@ func (c *Conversation) loop(req *Request) {
 			for _, newMsg := range newResp.Content {
 				if newMsg.Type == MessageResp || newMsg.Type == Text {
 					fmt.Printf("\nClaude: %s)\n", newMsg.Text)
-					c.AppendContent(newMsg)
+					c.appendContent(newMsg)
 				} else {
 					fmt.Println("Error: Unknown response type", newMsg.Type)
 					return
