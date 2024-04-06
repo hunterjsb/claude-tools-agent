@@ -22,30 +22,11 @@ var currentToolUId string
 
 type Conversation []Message
 
-func (c *Conversation) appendMsg(m Message) { // append Message to Conversation receiver
-	*c = append(*c, m)
+func (convo *Conversation) appendMsg(m Message) { // append Message to Conversation receiver
+	*convo = append(*convo, m)
 }
 
-func (c *Conversation) appendContent(cont Content) {
-	// Could append the Content AS a Message to the Conversation
-	// OR Content to a Message depending on the Content type
-	content := make([]Content, 1)
-	if cont.Type == Text {
-		content[0] = cont
-		c.appendMsg(Message{Role: Assistant, Content: content})
-	} else if cont.Type == ToolResult {
-		cont.ToolUseId = currentToolUId
-		content[0] = cont
-		c.appendMsg(Message{Role: User, Content: content})
-	} else if cont.Type == ToolUse {
-		currentToolUId = cont.Id
-		(*c)[len(*c)-1].Content = append((*c)[len(*c)-1].Content, cont) // append to content instead of conversation
-	} else {
-		utils.Cprintln("gray", "Ignoring message of type", cont.Type)
-	}
-}
-
-func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]Tool) {
+func (convo *Conversation) Converse(scanner *bufio.Scanner, t *[]Tool) {
 	for {
 		// Get user input (or quit)
 		userInput := handleUserInput(scanner)
@@ -55,13 +36,13 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]Tool) {
 
 		// Converse
 		content := makeTextContent(userInput)
-		*c = append(*c, Message{Role: User, Content: content})
-		req := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: *t}
-		c.talk(req)
+		*convo = append(*convo, Message{Role: User, Content: content})
+		req := &Request{Model: Opus, Messages: *convo, MaxTokens: 2048, System: SYS_PROMPT, Tools: *t}
+		convo.talk(req)
 	}
 }
 
-func (c *Conversation) talk(req *Request) {
+func (convo *Conversation) talk(req *Request) {
 	resp, err := req.Post()
 	if err != nil {
 		utils.Cprintln("red", "Error making request: "+err.Error())
@@ -71,28 +52,13 @@ func (c *Conversation) talk(req *Request) {
 	for _, cont := range resp.Content {
 		if cont.Type == MessageResp || cont.Type == Text {
 			utils.Cprintln("white", "\nClaude: \n", cont.Text)
-			c.appendContent(cont)
+			content := make([]Content, 1)
+			content[0] = cont
+			convo.appendMsg(Message{Role: Assistant, Content: content})
 		} else if cont.Type == ToolUse {
-			c.useTool(cont)
-
-			// Send a new request to Claude asking for the next step or a summary
-			req.Messages = *c
-			newResp, err := req.Post()
-			if err != nil {
-				utils.Cprintln("red", "Error making request: "+err.Error())
-				return
-			}
-
-			// Process the new response from Claude
-			for _, newMsg := range newResp.Content {
-				if newMsg.Type == MessageResp || newMsg.Type == Text {
-					utils.Cprintln("white", "\nClaude: ", newMsg.Text)
-					c.appendContent(newMsg)
-				} else {
-					utils.Cprintln("red", "Error: Cannot chain actions!", newMsg.Type)
-					return
-				}
-			}
+			convo.useTool(cont)
+			req.Messages = *convo
+			convo.talk(req) // Recursively call talk to handle the next step
 		} else {
 			utils.Cprintln("red", "Error: Unknown response type", cont.Type)
 			return
@@ -100,12 +66,13 @@ func (c *Conversation) talk(req *Request) {
 	}
 }
 
-func (c *Conversation) useTool(input Content) {
+func (convo *Conversation) useTool(input Content) {
 	utils.Cprintln("blue", "Claude wants to use tool:", input.Name, input.Input)
 	toolResp := ToolMap[input.Name](input.Input)
-	c.appendContent(input)
+	currentToolUId = input.Id
+	(*convo)[len(*convo)-1].Content = append((*convo)[len(*convo)-1].Content, input) // append to message content instead of conversation
 	utils.Cprintln("gray", "Used tool", input.Name, "and got response", toolResp)
-	c.appendMsg(Message{Role: User, Content: makeToolResponseContent(&toolResp)})
+	convo.appendMsg(Message{Role: User, Content: makeToolResponseContent(&toolResp)})
 }
 
 func makeTextContent(s string) []Content {
