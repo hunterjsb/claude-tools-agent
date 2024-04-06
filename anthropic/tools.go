@@ -19,7 +19,7 @@ type Tool struct {
 	InputSchema inputSchema `json:"input_schema"`
 }
 
-type useTool func(map[string]any) (*Content, error)
+type useTool func(map[string]any) Content
 
 var ToolMap = map[string]useTool{}
 
@@ -87,7 +87,7 @@ func LoadToolsFromDirectory(dir string) ([]Tool, error) {
 			}
 
 			// Assert that the UseTool function has the correct type
-			useTool, ok := useToolFunc.(func(map[string]any) (*Content, error))
+			useTool, ok := useToolFunc.(func(map[string]any) Content)
 			if !ok {
 				return fmt.Errorf("%s function in plugin '%s' has incorrect type", toolName, toolGoPath)
 			}

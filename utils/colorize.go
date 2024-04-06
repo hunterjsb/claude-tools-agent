@@ -60,21 +60,59 @@ var colorMap = map[string]string{
 	"vintage_black":   "#191970",
 }
 
-func CPrint(color string, a ...interface{}) {
+func PrintAllColors() {
+	for colorName, hexCode := range colorMap {
+		cprintlnh(hexCode, colorName)
+	}
+}
+
+func Cprintln(color string, a ...interface{}) {
 	color = strings.ToLower(color)
 	if hexCode, ok := colorMap[color]; ok {
-		CPrintHex(hexCode, a...)
+		cprintlnh(hexCode, a...)
 	} else {
 		fmt.Println(a...)
 	}
 }
 
-func CPrintHex(hexColor string, a ...interface{}) {
+func cprintlnh(hexColor string, a ...interface{}) {
 	colorCode := "\033[38;2;" + hexToRGB(hexColor) + "m"
 	resetCode := "\033[0m"
 	fmt.Print(colorCode)
 	fmt.Println(a...)
 	fmt.Print(resetCode)
+}
+
+func Cprintf(color string, format string, a ...interface{}) {
+	color = strings.ToLower(color)
+	if hexCode, ok := colorMap[color]; ok {
+		cprintfh(hexCode, format, a...)
+	} else {
+		fmt.Printf(format, a...)
+	}
+}
+
+func cprintfh(hexColor string, format string, a ...interface{}) {
+	colorCode := "\033[38;2;" + hexToRGB(hexColor) + "m"
+	resetCode := "\033[0m"
+	fmt.Print(colorCode)
+	fmt.Printf(format, a...)
+	fmt.Print(resetCode)
+}
+
+func Csprintf(color string, format string, a ...interface{}) string {
+	color = strings.ToLower(color)
+	if hexCode, ok := colorMap[color]; ok {
+		return csprintfh(hexCode, format, a...)
+	} else {
+		return fmt.Sprintf(format, a...)
+	}
+}
+
+func csprintfh(hexColor string, format string, a ...interface{}) string {
+	colorCode := "\033[38;2;" + hexToRGB(hexColor) + "m"
+	resetCode := "\033[0m"
+	return colorCode + fmt.Sprintf(format, a...) + resetCode
 }
 
 func hexToRGB(hexColor string) string {
@@ -108,10 +146,4 @@ func hexToDecimal(hexValue string) int {
 		}
 	}
 	return result
-}
-
-func PrintAllColors() {
-	for colorName, hexCode := range colorMap {
-		CPrintHex(hexCode, colorName)
-	}
 }

@@ -41,7 +41,7 @@ func (c *Conversation) appendContent(cont Content) {
 		currentToolUId = cont.Id
 		(*c)[len(*c)-1].Content = append((*c)[len(*c)-1].Content, cont) // append to content instead of conversation
 	} else {
-		utils.CPrint("gray", "Ignoring message of type", cont.Type)
+		utils.Cprintln("gray", "Ignoring message of type", cont.Type)
 	}
 }
 
@@ -64,51 +64,48 @@ func (c *Conversation) Converse(scanner *bufio.Scanner, t *[]Tool) {
 func (c *Conversation) talk(req *Request) {
 	resp, err := req.Post()
 	if err != nil {
-		utils.CPrint("red", "Error making request: "+err.Error())
+		utils.Cprintln("red", "Error making request: "+err.Error())
 		return
 	}
 
-	for _, msg := range resp.Content {
-		if msg.Type == MessageResp || msg.Type == Text {
-			utils.CPrint("white", "\nClaude: \n", msg.Text)
-			c.appendContent(msg)
-		} else if msg.Type == ToolUse {
-			utils.CPrint("blue", "Claude wants to use tool:", msg.Name, msg.Input)
-			toolResp, err := ToolMap[msg.Name](msg.Input)
-			if err != nil {
-				utils.CPrint("red", "ERROR using tool", err)
-				return
-			}
-
-			c.appendContent(msg)
-			utils.CPrint("gray", "Used tool", msg.Name, "and got response", toolResp)
-			toolResultMsg := Message{Role: User, Content: makeToolResponseContent(toolResp)}
-			*c = append(*c, toolResultMsg)
-			// fmt.Println("TOOL RESPONSE:::", *c)
+	for _, cont := range resp.Content {
+		if cont.Type == MessageResp || cont.Type == Text {
+			utils.Cprintln("white", "\nClaude: \n", cont.Text)
+			c.appendContent(cont)
+		} else if cont.Type == ToolUse {
+			c.useTool(cont)
 
 			// Send a new request to Claude asking for the next step or a summary
-			newReq := &Request{Model: Opus, Messages: *c, MaxTokens: 2048, System: SYS_PROMPT, Tools: req.Tools}
-			newResp, err := newReq.Post()
+			req.Messages = *c
+			newResp, err := req.Post()
 			if err != nil {
-				utils.CPrint("red", "Error making request: "+err.Error())
+				utils.Cprintln("red", "Error making request: "+err.Error())
 				return
 			}
 
 			// Process the new response from Claude
 			for _, newMsg := range newResp.Content {
 				if newMsg.Type == MessageResp || newMsg.Type == Text {
-					utils.CPrint("white", "\nClaude: ", newMsg.Text)
+					utils.Cprintln("white", "\nClaude: ", newMsg.Text)
 					c.appendContent(newMsg)
 				} else {
-					utils.CPrint("red", "Error: Unknown response type", newMsg.Type)
+					utils.Cprintln("red", "Error: Cannot chain actions!", newMsg.Type)
 					return
 				}
 			}
 		} else {
-			utils.CPrint("red", "Error: Unknown response type", msg.Type)
+			utils.Cprintln("red", "Error: Unknown response type", cont.Type)
 			return
 		}
 	}
+}
+
+func (c *Conversation) useTool(input Content) {
+	utils.Cprintln("blue", "Claude wants to use tool:", input.Name, input.Input)
+	toolResp := ToolMap[input.Name](input.Input)
+	c.appendContent(input)
+	utils.Cprintln("gray", "Used tool", input.Name, "and got response", toolResp)
+	c.appendMsg(Message{Role: User, Content: makeToolResponseContent(&toolResp)})
 }
 
 func makeTextContent(s string) []Content {
