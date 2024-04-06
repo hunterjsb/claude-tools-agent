@@ -27,7 +27,8 @@ func (c *Conversation) appendMsg(m Message) { // append Message to Conversation 
 }
 
 func (c *Conversation) appendContent(cont Content) {
-	// Could append a message to the conversation OR content to a message depending on the content type
+	// Could append the Content AS a Message to the Conversation
+	// OR Content to a Message depending on the Content type
 	content := make([]Content, 1)
 	if cont.Type == Text {
 		content[0] = cont
