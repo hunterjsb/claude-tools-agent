@@ -22,6 +22,42 @@ var colorMap = map[string]string{
 	"lime":    "#00FF00",
 	"teal":    "#008080",
 	"indigo":  "#4B0082",
+
+	// Pastel
+	"pastel_red":     "#FF6666",
+	"pastel_orange":  "#FFB266",
+	"pastel_yellow":  "#FFFF66",
+	"pastel_green":   "#B2FF66",
+	"pastel_blue":    "#66B2FF",
+	"pastel_purple":  "#B266FF",
+	"pastel_pink":    "#FF66B2",
+	"pastel_cyan":    "#66FFFF",
+	"pastel_gray":    "#B2B2B2",
+	"pastel_lime":    "#B2FF66",
+	"pastel_teal":    "#66FFB2",
+	"pastel_indigo":  "#8066FF",
+	"pastel_brown":   "#CC9966",
+	"pastel_magenta": "#FF66FF",
+	"pastel_white":   "#F0F0F0",
+	"pastel_black":   "#333333",
+
+	// Vintage
+	"vintage_red":     "#D2691E",
+	"vintage_blue":    "#6495ED",
+	"vintage_green":   "#556B2F",
+	"vintage_pink":    "#DB7093",
+	"vintage_purple":  "#9932CC",
+	"vintage_orange":  "#FF7F50",
+	"vintage_yellow":  "#F0E68C",
+	"vintage_brown":   "#8B4513",
+	"vintage_gray":    "#696969",
+	"vintage_teal":    "#5F9EA0",
+	"vintage_cyan":    "#00CED1",
+	"vintage_lime":    "#32CD32",
+	"vintage_indigo":  "#4169E1",
+	"vintage_magenta": "#FF1493",
+	"vintage_white":   "#FFFAF0",
+	"vintage_black":   "#191970",
 }
 
 func CPrint(color string, a ...interface{}) {
@@ -72,4 +108,10 @@ func hexToDecimal(hexValue string) int {
 		}
 	}
 	return result
+}
+
+func PrintAllColors() {
+	for colorName, hexCode := range colorMap {
+		CPrintHex(hexCode, colorName)
+	}
 }
