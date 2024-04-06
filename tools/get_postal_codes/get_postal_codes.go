@@ -33,11 +33,10 @@ func GET_POSTAL_CODES(params map[string]any) (*anthropic.Content, error) {
 	}
 
 	// Decode the JSON response
-	qz, err := (io.ReadAll(resp.Body))
+	responseContent, err := (io.ReadAll(resp.Body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %v", err)
 	}
-	qzs := string(qz)
 
-	return &anthropic.Content{Type: anthropic.ToolResult, Content: qzs}, nil
+	return &anthropic.Content{Type: anthropic.ToolResult, Content: string(responseContent)}, nil
 }
