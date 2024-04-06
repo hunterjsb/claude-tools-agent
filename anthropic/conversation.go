@@ -96,7 +96,7 @@ func (c *Conversation) talk(req *Request) {
 			// Process the new response from Claude
 			for _, newMsg := range newResp.Content {
 				if newMsg.Type == MessageResp || newMsg.Type == Text {
-					utils.CPrint("white", "\nClaude: %s)\n", newMsg.Text)
+					utils.CPrint("white", "\nClaude: ", newMsg.Text)
 					c.appendContent(newMsg)
 				} else {
 					utils.CPrint("red", "Error: Unknown response type", newMsg.Type)
