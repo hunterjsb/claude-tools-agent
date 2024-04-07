@@ -1,3 +1,4 @@
 .env
 tools/*/*.so
 .vscode
+conversation.json

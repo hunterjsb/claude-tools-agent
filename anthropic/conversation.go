@@ -2,7 +2,9 @@ package anthropic
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hunterjsb/super-claude/utils"
@@ -22,15 +24,16 @@ var currentToolUId string
 
 type Conversation []Message
 
-func (convo *Conversation) appendMsg(m Message) { // append Message to Conversation receiver
-	*convo = append(*convo, m)
-}
-
 func (convo *Conversation) Converse(scanner *bufio.Scanner, t *[]Tool) {
 	for {
 		// Get user input (or quit)
 		userInput := handleUserInput(scanner)
 		if userInput == "" {
+			// Write conversation to JSON file on exit
+			err := writeConvoToFile(*convo)
+			if err != nil {
+				utils.Cprintln("red", "Error writing conversation to file: "+err.Error())
+			}
 			break
 		}
 
@@ -44,6 +47,7 @@ func (convo *Conversation) Converse(scanner *bufio.Scanner, t *[]Tool) {
 
 func (convo *Conversation) talk(req *Request) {
 	resp, err := req.Post()
+	// utils.Cprintln("magenta", *convo)
 	if err != nil {
 		utils.Cprintln("red", "Error making request: "+err.Error())
 		return
@@ -52,9 +56,7 @@ func (convo *Conversation) talk(req *Request) {
 	for _, cont := range resp.Content {
 		if cont.Type == MessageResp || cont.Type == Text {
 			utils.Cprintln("white", "\nClaude: \n", cont.Text)
-			content := make([]Content, 1)
-			content[0] = cont
-			convo.appendMsg(Message{Role: Assistant, Content: content})
+			convo.appendMsg(Message{Role: Assistant, Content: wrapContent(&cont)})
 		} else if cont.Type == ToolUse {
 			convo.useTool(cont)
 			req.Messages = *convo
@@ -66,6 +68,10 @@ func (convo *Conversation) talk(req *Request) {
 	}
 }
 
+func (convo *Conversation) appendMsg(m Message) { // append Message to Conversation receiver
+	*convo = append(*convo, m)
+}
+
 func (convo *Conversation) useTool(input Content) {
 	utils.Cprintln("blue", "Claude wants to use tool:", input.Name, input.Input)
 	toolResp := ToolMap[input.Name](input.Input)
@@ -75,15 +81,21 @@ func (convo *Conversation) useTool(input Content) {
 	convo.appendMsg(Message{Role: User, Content: makeToolResponseContent(&toolResp)})
 }
 
+func wrapContent(cont *Content) []Content {
+	content := make([]Content, 1)
+	content[0] = *cont
+	return content
+}
+
 func makeTextContent(s string) []Content {
 	content := make([]Content, 1)
 	content[0] = Content{Type: Text, Text: s}
 	return content
 }
 
-func makeToolResponseContent(data *Content) []Content {
+func makeToolResponseContent(cont *Content) []Content {
 	content := make([]Content, 1)
-	content[0] = Content{Type: ToolResult, ToolUseId: currentToolUId, Content: data.Content}
+	content[0] = Content{Type: ToolResult, ToolUseId: currentToolUId, Content: cont.Content}
 	return content
 }
 
@@ -97,4 +109,23 @@ func handleUserInput(scanner *bufio.Scanner) string {
 		return ""
 	}
 	return input
+}
+
+func writeConvoToFile(convo Conversation) error {
+	filename := "conversation.json"
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	err = encoder.Encode(convo)
+	if err != nil {
+		return err
+	}
+
+	utils.Cprintln("green", "Conversation written to", filename)
+	return nil
 }
