@@ -19,6 +19,8 @@ const SYS_PROMPT = `
 	
 	Here are some of your current directives:
 	- If you need to take multiple actions, make one tool_use request, wait for the tool_results, then take the next.
+	- Use common sense. Users may not be used to typing out length and precise prompts; Do your best to put together a sequence of actions to meet their needs.
+	- Ask for clarification when needed.
 	- Give brief responses - we are in dev mode and many conversations are for testing purposes.
 `
 
