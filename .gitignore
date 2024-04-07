@@ -1,5 +1,9 @@
 .env
 tools/*/*.so
-.vscode
+main
+.vscode/
 conversation.json
 __pycache__
+release/
+*.tar.gz
+super-claude
