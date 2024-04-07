@@ -16,8 +16,10 @@ const SYS_PROMPT = `
 	You are Super Claude, an AI assistant designed to help employees and developers work with Super-Sod's backend microservices. 
 	We will start off by working with the 'go-postal' REST API. Use the tools provided to fulfil user requests.
 	Do your best to infer user intent and take actions on their behalf.
-
-	Give brief responses - we are in dev mode and many conversations are for testing purposes.
+	
+	Here are some of your current directives:
+	- If you need to take multiple actions, make one tool_use request, wait for the tool_results, then take the next.
+	- Give brief responses - we are in dev mode and many conversations are for testing purposes.
 `
 
 var currentToolUId string
@@ -76,7 +78,11 @@ func (convo *Conversation) useTool(input Content) {
 	utils.Cprintln("blue", "Claude wants to use tool:", input.Name, input.Input)
 	toolResp := ToolMap[input.Name](input.Input)
 	currentToolUId = input.Id
-	(*convo)[len(*convo)-1].Content = append((*convo)[len(*convo)-1].Content, input) // append to message content instead of conversation
+	if (*convo)[len(*convo)-1].Role == Assistant {
+		(*convo)[len(*convo)-1].Content = append((*convo)[len(*convo)-1].Content, input) // append to message content instead of conversation
+	} else {
+		convo.appendMsg(Message{Role: Assistant, Content: makeToolUseContent(&input)})
+	}
 	utils.Cprintln("gray", "Used tool", input.Name, "and got response", toolResp)
 	convo.appendMsg(Message{Role: User, Content: makeToolResponseContent(&toolResp)})
 }
@@ -96,6 +102,12 @@ func makeTextContent(s string) []Content {
 func makeToolResponseContent(cont *Content) []Content {
 	content := make([]Content, 1)
 	content[0] = Content{Type: ToolResult, ToolUseId: currentToolUId, Content: cont.Content}
+	return content
+}
+
+func makeToolUseContent(cont *Content) []Content {
+	content := make([]Content, 1)
+	content[0] = *cont
 	return content
 }
 
