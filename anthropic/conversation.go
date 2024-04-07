@@ -22,8 +22,18 @@ const SYS_PROMPT = `
 	- If you need to take multiple actions, make one tool_use request, wait for the tool_results, then take the next.
 	- Use common sense. Users may not be used to typing out length and precise prompts; Do your best to put together a sequence of actions to meet their needs.
 	- Ask for clarification when needed.
+	- If the user asks you to modify a resource, and you do so successfully, ask the user if they would like you to get the resource to confirm the modification.
 	- Give brief responses - we are in dev mode and many conversations are for testing purposes.
 `
+
+const (
+	claudeResponseColor = "vintage_white"
+	claudeThoughtsColor = "indigo"
+	toolRequestColor    = "pastel_gray"
+	toolResponseColor   = "black"
+	userColor           = "vintage_lime"
+	claudeColor         = "pastel_pink"
+)
 
 var currentToolUId string
 
@@ -62,10 +72,11 @@ func (convo *Conversation) talk(req *Request) {
 		if cont.Type == MessageResp || cont.Type == Text {
 			thoughts, message := parseThoughts(cont.Text)
 			if thoughts != "" {
-				utils.Cprintln("pastel_black", "\n*Thinking* ", thoughts)
+				utils.Cprintln(claudeThoughtsColor, "\n*Thinking* ", thoughts, "\n")
 			}
 			if message != "" {
-				utils.Cprintln("vintage_brown", "Claude:", message)
+				utils.Cprintln(claudeColor, "\nClaude:")
+				utils.Cprintln(claudeResponseColor, message, "\n")
 			}
 			convo.appendMsg(Message{Role: Assistant, Content: wrapContent(&cont)})
 		} else if cont.Type == ToolUse {
@@ -84,7 +95,7 @@ func (convo *Conversation) appendMsg(m Message) { // append Message to Conversat
 }
 
 func (convo *Conversation) useTool(input Content) {
-	utils.Cprintln("vintage_teal", "Claude wants to use tool:", input.Name, input.Input)
+	utils.Cprintln(toolRequestColor, "Claude wants to use tool:", input.Name, input.Input)
 	toolResp := ToolMap[input.Name](input.Input)
 	currentToolUId = input.Id
 	if (*convo)[len(*convo)-1].Role == Assistant {
@@ -92,7 +103,7 @@ func (convo *Conversation) useTool(input Content) {
 	} else {
 		convo.appendMsg(Message{Role: Assistant, Content: makeToolUseContent(&input)})
 	}
-	utils.Cprintln("teal", "Used tool", input.Name, "and got response", toolResp.Content)
+	utils.Cprintln(toolResponseColor, "Used tool", input.Name, "and got response", toolResp.Content)
 	convo.appendMsg(Message{Role: User, Content: makeToolResponseContent(&toolResp)})
 }
 
@@ -146,7 +157,7 @@ func makeToolUseContent(cont *Content) []Content {
 }
 
 func handleUserInput(scanner *bufio.Scanner) string {
-	fmt.Print("\nYou: ")
+	fmt.Print(utils.Csprintf(userColor, "%s: ", "You"))
 	if !scanner.Scan() {
 		return ""
 	}
