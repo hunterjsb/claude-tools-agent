@@ -60,6 +60,12 @@ func (convo *Conversation) Converse(scanner *bufio.Scanner, t *[]Tool) {
 	}
 }
 
+func makeTextContent(s string) []Content {
+	content := make([]Content, 1)
+	content[0] = Content{Type: Text, Text: s}
+	return content
+}
+
 func (convo *Conversation) talk(req *Request) {
 	resp, err := req.Post()
 	// utils.Cprintln("magenta", *convo)
@@ -94,6 +100,12 @@ func (convo *Conversation) appendMsg(m Message) { // append Message to Conversat
 	*convo = append(*convo, m)
 }
 
+func wrapContent(cont *Content) []Content {
+	content := make([]Content, 1)
+	content[0] = *cont
+	return content
+}
+
 func (convo *Conversation) useTool(input Content) {
 	utils.Cprintln(toolRequestColor, "Claude wants to use tool:", input.Name, input.Input)
 	toolResp := ToolMap[input.Name](input.Input)
@@ -105,6 +117,30 @@ func (convo *Conversation) useTool(input Content) {
 	}
 	utils.Cprintln(toolResponseColor, "Used tool", input.Name, "and got response", toolResp.Content)
 	convo.appendMsg(Message{Role: User, Content: makeToolResponseContent(&toolResp)})
+}
+
+func makeToolResponseContent(cont *Content) []Content {
+	content := make([]Content, 1)
+	content[0] = Content{Type: ToolResult, ToolUseId: currentToolUId, Content: cont.Content}
+	return content
+}
+
+func makeToolUseContent(cont *Content) []Content {
+	content := make([]Content, 1)
+	content[0] = *cont
+	return content
+}
+
+func handleUserInput(scanner *bufio.Scanner) string {
+	fmt.Print(utils.Csprintf(userColor, "%s: ", "You"))
+	if !scanner.Scan() {
+		return ""
+	}
+	input := scanner.Text()
+	if strings.ToLower(input) == "exit" {
+		return ""
+	}
+	return input
 }
 
 func parseThoughts(input string) (string, string) {
@@ -130,42 +166,6 @@ func parseThoughts(input string) (string, string) {
 	}
 
 	return thoughts, result
-}
-
-func wrapContent(cont *Content) []Content {
-	content := make([]Content, 1)
-	content[0] = *cont
-	return content
-}
-
-func makeTextContent(s string) []Content {
-	content := make([]Content, 1)
-	content[0] = Content{Type: Text, Text: s}
-	return content
-}
-
-func makeToolResponseContent(cont *Content) []Content {
-	content := make([]Content, 1)
-	content[0] = Content{Type: ToolResult, ToolUseId: currentToolUId, Content: cont.Content}
-	return content
-}
-
-func makeToolUseContent(cont *Content) []Content {
-	content := make([]Content, 1)
-	content[0] = *cont
-	return content
-}
-
-func handleUserInput(scanner *bufio.Scanner) string {
-	fmt.Print(utils.Csprintf(userColor, "%s: ", "You"))
-	if !scanner.Scan() {
-		return ""
-	}
-	input := scanner.Text()
-	if strings.ToLower(input) == "exit" {
-		return ""
-	}
-	return input
 }
 
 func writeConvoToFile(convo Conversation) error {
