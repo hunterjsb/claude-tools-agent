@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/hunterjsb/super-claude/utils"
@@ -59,7 +60,13 @@ func (convo *Conversation) talk(req *Request) {
 
 	for _, cont := range resp.Content {
 		if cont.Type == MessageResp || cont.Type == Text {
-			utils.Cprintln("white", "\nClaude: \n", cont.Text)
+			thoughts, message := parseThoughts(cont.Text)
+			if thoughts != "" {
+				utils.Cprintln("pastel_black", "\n*Thinking* ", thoughts)
+			}
+			if message != "" {
+				utils.Cprintln("vintage_brown", "Claude:", message)
+			}
 			convo.appendMsg(Message{Role: Assistant, Content: wrapContent(&cont)})
 		} else if cont.Type == ToolUse {
 			convo.useTool(cont)
@@ -77,7 +84,7 @@ func (convo *Conversation) appendMsg(m Message) { // append Message to Conversat
 }
 
 func (convo *Conversation) useTool(input Content) {
-	utils.Cprintln("blue", "Claude wants to use tool:", input.Name, input.Input)
+	utils.Cprintln("vintage_teal", "Claude wants to use tool:", input.Name, input.Input)
 	toolResp := ToolMap[input.Name](input.Input)
 	currentToolUId = input.Id
 	if (*convo)[len(*convo)-1].Role == Assistant {
@@ -85,8 +92,33 @@ func (convo *Conversation) useTool(input Content) {
 	} else {
 		convo.appendMsg(Message{Role: Assistant, Content: makeToolUseContent(&input)})
 	}
-	utils.Cprintln("gray", "Used tool", input.Name, "and got response", toolResp.Content)
+	utils.Cprintln("teal", "Used tool", input.Name, "and got response", toolResp.Content)
 	convo.appendMsg(Message{Role: User, Content: makeToolResponseContent(&toolResp)})
+}
+
+func parseThoughts(input string) (string, string) {
+	// Regular expression pattern to match the content between <thinking> tags
+	pattern := `(?s)<thinking>(.*?)</thinking>`
+
+	// Compile the regular expression
+	re := regexp.MustCompile(pattern)
+
+	// Find the match in the input string
+	match := re.FindStringSubmatch(input)
+
+	// Extract the thoughts and result
+	thoughts := ""
+	result := ""
+	if len(match) > 1 {
+		thoughts = strings.TrimSpace(match[1])
+		result = strings.TrimSpace(strings.Replace(input, match[0], "", 1))
+	}
+
+	if result == "" && thoughts == "" { // Fallback to original string
+		result = input
+	}
+
+	return thoughts, result
 }
 
 func wrapContent(cont *Content) []Content {
