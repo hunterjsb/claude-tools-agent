@@ -1,0 +1,14 @@
+{
+    "name": "get_market",
+    "description": "Get the attributes of a market based on its ID.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "market_id": {
+                "type": "integer",
+                "description": "ID of the desired market"
+            }
+        }
+    },
+    "required": ["market_id"]
+}

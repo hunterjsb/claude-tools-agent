@@ -1,5 +1,5 @@
 {
-    "name": "get_postal_codes",
+    "name": "get_postal_code",
     "description": "Get the information about a single postal code",
     "input_schema": {
         "type": "object",

@@ -8,7 +8,7 @@ import (
 	"github.com/hunterjsb/super-claude/anthropic"
 )
 
-func GET_POSTAL_CODES(params map[string]any) anthropic.Content {
+func GET_POSTAL_CODE(params map[string]any) anthropic.Content {
 	postalCode, ok := params["postal_code"]
 	if !ok {
 		return newToolResult("ERROR: must provide postal_code")
