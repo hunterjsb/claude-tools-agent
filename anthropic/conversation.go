@@ -75,7 +75,7 @@ func (convo *Conversation) talk(req *Request) {
 				utils.Cprintln(claudeThoughtsColor, "\n*Thinking* ", thoughts, "\n")
 			}
 			if message != "" {
-				utils.Cprintln(claudeColor, "\nClaude:")
+				utils.Cprintln(claudeColor, "Claude:")
 				utils.Cprintln(claudeResponseColor, message, "\n")
 			}
 			convo.appendMsg(Message{Role: Assistant, Content: wrapContent(&cont)})
