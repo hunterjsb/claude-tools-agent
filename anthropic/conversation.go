@@ -85,7 +85,7 @@ func (convo *Conversation) useTool(input Content) {
 	} else {
 		convo.appendMsg(Message{Role: Assistant, Content: makeToolUseContent(&input)})
 	}
-	utils.Cprintln("gray", "Used tool", input.Name, "and got response", toolResp)
+	utils.Cprintln("gray", "Used tool", input.Name, "and got response", toolResp.Content)
 	convo.appendMsg(Message{Role: User, Content: makeToolResponseContent(&toolResp)})
 }
 

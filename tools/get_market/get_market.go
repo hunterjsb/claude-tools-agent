@@ -13,7 +13,13 @@ func GET_MARKET(params map[string]any) anthropic.Content {
 	if !ok {
 		return newToolResult("ERROR: must provide market_id")
 	}
-	url := fmt.Sprintf("http://localhost:8280/markets/%s", postalCode)
+
+	pocoFloat, ok := postalCode.(float64) // idk why it comes over as float64
+	if !ok {
+		return newToolResult("ERROR: invalid market_id type")
+	}
+
+	url := fmt.Sprintf("http://localhost:8280/markets/%d", int(pocoFloat))
 	resp, err := http.Get(url)
 	if err != nil {
 		errMsg := "ERROR on http.Get: " + err.Error()
