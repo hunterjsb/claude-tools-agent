@@ -60,12 +60,6 @@ func (convo *Conversation) Converse(scanner *bufio.Scanner, t *[]Tool) {
 	}
 }
 
-func makeTextContent(s string) []Content {
-	content := make([]Content, 1)
-	content[0] = Content{Type: Text, Text: s}
-	return content
-}
-
 func (convo *Conversation) talk(req *Request) {
 	resp, err := req.Post()
 	// utils.Cprintln("magenta", *convo)
@@ -96,6 +90,18 @@ func (convo *Conversation) talk(req *Request) {
 	}
 }
 
+func handleUserInput(scanner *bufio.Scanner) string {
+	fmt.Print(utils.Csprintf(userColor, "%s: ", "You"))
+	if !scanner.Scan() {
+		return ""
+	}
+	input := scanner.Text()
+	if strings.ToLower(input) == "exit" {
+		return ""
+	}
+	return input
+}
+
 func (convo *Conversation) appendMsg(m Message) { // append Message to Conversation receiver
 	*convo = append(*convo, m)
 }
@@ -103,6 +109,12 @@ func (convo *Conversation) appendMsg(m Message) { // append Message to Conversat
 func wrapContent(cont *Content) []Content {
 	content := make([]Content, 1)
 	content[0] = *cont
+	return content
+}
+
+func makeTextContent(s string) []Content {
+	content := make([]Content, 1)
+	content[0] = Content{Type: Text, Text: s}
 	return content
 }
 
@@ -129,18 +141,6 @@ func makeToolUseContent(cont *Content) []Content {
 	content := make([]Content, 1)
 	content[0] = *cont
 	return content
-}
-
-func handleUserInput(scanner *bufio.Scanner) string {
-	fmt.Print(utils.Csprintf(userColor, "%s: ", "You"))
-	if !scanner.Scan() {
-		return ""
-	}
-	input := scanner.Text()
-	if strings.ToLower(input) == "exit" {
-		return ""
-	}
-	return input
 }
 
 func parseThoughts(input string) (string, string) {
