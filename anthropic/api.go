@@ -17,11 +17,13 @@ func (h *Handler) ConverseHttp(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "ERROR: Invalid data: "+err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	err = json.Unmarshal(body, &convo)
 	if err != nil {
 		http.Error(w, "ERROR: Invalid values, must be of type Conversation: "+err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// Converse
