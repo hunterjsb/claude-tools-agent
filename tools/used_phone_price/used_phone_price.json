@@ -1,0 +1,22 @@
+{
+    "name": "used_phone_price",
+    "description": "Get how much the company can sell a used phone for",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "phone_model": {
+                "type": "string",
+                "description": "iphone model with spaces between words."
+            },
+            "storage": {
+                "type": "string",
+                "description": "Storage capacity of the phone with abbreviated size ie GB TB."
+            },
+            "unlocked": {
+                "type": "string",
+                "description": "true if the phone is unlocked omit otherwise"
+            }
+        }
+    },
+    "required": ["phone_model"]
+}
