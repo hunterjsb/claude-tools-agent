@@ -10,7 +10,7 @@ import (
 )
 
 func USED_PHONE_PRICE(params map[string]any) anthropic.Content {
-	u, err := url.Parse("http://localhost:5000/api/iphone-used/")
+	baseUrl, err := url.Parse("http://localhost:5000/api/iphone-used/")
 	if err != nil {
 		return newToolResult("ERROR Something has seriously gone wrong")
 	}
@@ -19,15 +19,21 @@ func USED_PHONE_PRICE(params map[string]any) anthropic.Content {
 	if !ok {
 		return newToolResult("ERROR must provide phone model")
 	}
-	u.JoinPath(model)
+	urlWithModel := baseUrl.JoinPath(model)
 
-	q := u.Query()
-	storage := params["storage"].(string)
-	unlocked := params["unlocked"].(string)
+	q := urlWithModel.Query()
+	storage, ok := params["storage"].(string)
+	if !ok {
+		fmt.Println("Storage Not Provided")
+	}
+	unlocked, ok := params["unlocked"].(string)
+	if !ok {
+		fmt.Println("Is_Unlocked Not Provided")
+	}
 	q.Set("storage", storage)
-	q.Add("unlockded", unlocked)
+	q.Add("unlocked", unlocked)
 
-	resp, err := http.Get(u.String())
+	resp, err := http.Get(urlWithModel.String())
 	if err != nil {
 		errMsg := "ERROR on http.Get: " + err.Error()
 		return newToolResult(errMsg)
