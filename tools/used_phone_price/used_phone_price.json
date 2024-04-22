@@ -6,15 +6,15 @@
         "properties": {
             "phone_model": {
                 "type": "string",
-                "description": "iphone model with spaces between words."
+                "description": "model of the iphone with spaces"
             },
             "storage": {
                 "type": "string",
-                "description": "Storage capacity of the phone with abbreviated size ie GB TB."
+                "description": "Storage capacity of the phone, 64gb, 128gb, 256gb, 512gb, or 1tb"
             },
             "unlocked": {
                 "type": "string",
-                "description": "true if the phone is unlocked omit otherwise"
+                "description": "true if the phone is unlocked, omit otherwise"
             }
         }
     },

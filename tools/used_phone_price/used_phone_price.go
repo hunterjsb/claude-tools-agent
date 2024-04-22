@@ -49,11 +49,7 @@ func USED_PHONE_PRICE(params map[string]any) anthropic.Content {
 	if err != nil {
 		return newToolResult(fmt.Sprintf("failed to decode response: %v", err))
 	}
-
 	return newToolResult(string(responseContent))
-
-
-
 }
 
 func newToolResult(s string) anthropic.Content {
