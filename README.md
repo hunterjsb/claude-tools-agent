@@ -1,4 +1,4 @@
-# super-claude
+# CTA
 ### An autonomous agent based on Anthropic's `tools` beta and Claude-3
 
 ## Usage
