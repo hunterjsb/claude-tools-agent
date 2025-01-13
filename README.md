@@ -1,4 +1,4 @@
-# CTA
+# Claude Tools Agent
 ### An autonomous agent based on Anthropic's `tools` beta and Claude-3
 
 ## Usage
